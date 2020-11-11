@@ -1,7 +1,10 @@
 import 'package:animate_do/animate_do.dart';
+import 'package:assets_audio_player/assets_audio_player.dart';
 import 'package:flutter/material.dart';
 import 'package:music_player/src/helpers/helpers.dart';
+import 'package:music_player/src/models/audio_player_model.dart';
 import 'package:music_player/src/widgets/custom_appbar.dart';
+import 'package:provider/provider.dart';
 
 class MusicPlayerPage extends StatelessWidget {
   @override
@@ -77,8 +80,10 @@ class TitlePlay extends StatefulWidget {
 class _TitlePlayState extends State<TitlePlay>
     with SingleTickerProviderStateMixin {
   bool isPlaying = false;
-
+  bool firstTime = true;
   AnimationController playAnimation;
+
+  final assetAudioPlayer = AssetsAudioPlayer();
 
   @override
   void initState() {
@@ -93,6 +98,19 @@ class _TitlePlayState extends State<TitlePlay>
     // TODO: implement dispose
     playAnimation.dispose();
     super.dispose();
+  }
+
+  void open() {
+    final audioPlayerModel =
+        Provider.of<AudioPlayerModel>(context, listen: false);
+    assetAudioPlayer.open(Audio('assets/Breaking-Benjamin-Far-Away.mp3'));
+    assetAudioPlayer.currentPosition.listen((duration) {
+      audioPlayerModel.current = duration;
+    });
+
+    assetAudioPlayer.current.listen((playingAudio) {
+      audioPlayerModel.songDuration = playingAudio.audio.duration;
+    });
   }
 
   @override
@@ -124,12 +142,23 @@ class _TitlePlayState extends State<TitlePlay>
               progress: playAnimation,
             ),
             onPressed: () {
-              if(this.isPlaying){
+              final audioModel =
+                  Provider.of<AudioPlayerModel>(context, listen: false);
+
+              if (this.isPlaying) {
                 playAnimation.reverse();
                 this.isPlaying = false;
-              }else{
+                audioModel.controller.stop();
+              } else {
                 playAnimation.forward();
                 this.isPlaying = true;
+                audioModel.controller.repeat();
+              }
+
+              if (firstTime) {
+                this.open();
+              } else {
+                assetAudioPlayer.playOrPause();
               }
             },
           )
@@ -165,11 +194,15 @@ class ImageDiskDuration extends StatelessWidget {
 class ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final audioPlayerModel = Provider.of<AudioPlayerModel>(context);
+
+    final percent = audioPlayerModel.percent;
+
     return Container(
       child: Column(
         children: [
           Text(
-            '00:00',
+            '${audioPlayerModel.songTotalDuration}',
             style: TextStyle(color: Colors.white.withOpacity(0.4)),
           ),
           SizedBox(
@@ -186,7 +219,7 @@ class ProgressBar extends StatelessWidget {
                 bottom: 0,
                 child: Container(
                   width: 3,
-                  height: 100,
+                  height: 230 * percent,
                   color: Colors.white.withOpacity(0.8),
                 ),
               ),
@@ -196,7 +229,7 @@ class ProgressBar extends StatelessWidget {
             height: 10,
           ),
           Text(
-            '00:00',
+            '${audioPlayerModel.currentSecond}',
             style: TextStyle(color: Colors.white.withOpacity(0.4)),
           ),
         ],
@@ -208,6 +241,8 @@ class ProgressBar extends StatelessWidget {
 class ImageDisk extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final audioModel = Provider.of<AudioPlayerModel>(context);
+
     return Container(
       padding: EdgeInsets.all(20),
       width: 250,
@@ -218,6 +253,11 @@ class ImageDisk extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             SpinPerfect(
+              duration: Duration(seconds: 10),
+              infinite: true,
+              manualTrigger: true,
+              controller: (animationController) =>
+                  audioModel.controller = animationController,
               child: Image(
                 image: AssetImage('assets/aurora.jpg'),
               ),

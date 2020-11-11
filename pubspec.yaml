@@ -31,6 +31,7 @@ dependencies:
   font_awesome_flutter: ^8.10.0
   animate_do: ^1.7.3
   provider: ^4.3.2+2
+  assets_audio_player: ^2.0.13+1
 
 dev_dependencies:
   flutter_test:
